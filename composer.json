@@ -22,10 +22,11 @@
     },
     "autoload": {
         "classmap": [
-            "src/controllers"
+            "src/Controllers"
         ],
-        "psr-0": {
-            "karellens\\pretty-rest\\": "src/"
+        "psr-4": {
+            "App\\": "app/",
+            "Karellens\\PrettyRest\\": "packages/karellens/pretty-rest/src"
         }
     },
     "minimum-stability": "dev"

@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Providers;
+namespace Karellens\PrettyApi;
 
 use Illuminate\Support\ServiceProvider;
 
-class PrettyRestServiceProvider extends ServiceProvider
+class PrettyApiServiceProvider extends ServiceProvider
 {
     /**
      * Bootstrap the application services.
@@ -13,7 +13,7 @@ class PrettyRestServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        //
+        $this->publishes([realpath(__DIR__.'/../config/api.php') => config_path('api.php')]);
     }
 
     /**
@@ -23,6 +23,7 @@ class PrettyRestServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        //
+        include __DIR__.'/routes.php';
+        $this->app->make('Karellens\PrettyApi\Http\Controllers\ApiController');
     }
 }

@@ -6,22 +6,21 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Karellens\PrettyApi\ApiResponse;
 use Karellens\PrettyApi\Http\Exceptions\DataNotReceivedException;
 
-
+$available_versions = '(1|2|3)';
 Route::pattern('id', '[0-9]+');
+Route::pattern('version', '[0-9]+');
 Route::pattern('alias', '[0-9a-z_-]+');
 
 /* map api routes */
 Route::group([
     'middleware' => 'api',
     'namespace' => 'App\Http\Controllers',
-    'prefix' => 'api',
+    'prefix' => 'api/v{version}',
 ], function ($router) {
 
-
-    Route::group(['prefix' => 'v1'], function () {
-
         // index
-        Route::get('/users', function (Request $request) {
+        Route::get('/users', function (Request $request, $version = null) {
+            dd($request);
             return App\User::all();
         });
 
@@ -108,6 +107,5 @@ Route::group([
                 return (new ApiResponse())->error(404, $e->getMessage());
             }
         });
-    });
 
 });

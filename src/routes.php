@@ -1,12 +1,9 @@
 <?php
 
 use Illuminate\Http\Request;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
-
-use Karellens\LAF\ApiResponse;
-use Karellens\LAF\Http\Exceptions\DataNotReceivedException;
 
 $available_versions = '(1|2|3)';
+
 Route::pattern('id', '[0-9]+');
 Route::pattern('version', '[0-9]+');
 Route::pattern('alias', '[0-9a-z_-]+');
@@ -19,93 +16,28 @@ Route::group([
 ], function ($router) {
 
         // index
-        Route::get('/users', function (Request $request, $version = null) {
-            dd($request);
-            return App\User::all();
-        });
+        Route::get('/users', function (Request $request, $version) {
+            return (new \Karellens\LAF\Http\Controllers\ApiController($request, $version))->index();
+        })->name('api.index');
 
         // store
-        Route::post('/users', function (Request $request) {
-            try
-            {
-                if($request->isJson())
-                {
-                    $user = new App\User($request->all());
-                }
-                else
-                {
-                    throw new DataNotReceivedException('Bad request! No data received.');
-                }
-
-                $user->save();
-
-                return (new ApiResponse())->error(200, 'Resource #'.$user->id.' created!');
-            }
-            catch (DataNotReceivedException $e)
-            {
-                return (new ApiResponse())->error(400, $e->getMessage());
-            }
-        });
+        Route::post('/users', function (Request $request, $version) {
+            return (new \Karellens\LAF\Http\Controllers\ApiController($request, $version))->store($request);
+        })->name('api.store');
 
         // show
-        Route::get('/users/{id}', function (Request $request, $id) {
-            try
-            {
-                return App\User::findOrFail($id);
-            }
-            catch (ModelNotFoundException $e)
-            {
-                return (new ApiResponse())->error(404, $e->getMessage());
-            }
-        });
+        Route::get('/users/{id}', function (Request $request, $version, $id) {
+            return (new \Karellens\LAF\Http\Controllers\ApiController($request, $version))->show($id);
+        })->name('api.show');
 
         // update
-        /**
-         * url: resource/id
-         * body: data: {...}
-         * */
-        Route::put('/users/{id}', function (Request $request, $id) {
-            try
-            {
-                $user = App\User::findOrFail($id);
-            }
-            catch (ModelNotFoundException $e)
-            {
-                return (new ApiResponse())->error(404, $e->getMessage());
-            }
-
-            try
-            {
-                if($request->isJson())
-                {
-                    $user->fill($request->all());
-                }
-                else
-                {
-                    throw new DataNotReceivedException('Bad request! No data received.');
-                }
-            }
-            catch (DataNotReceivedException $e)
-            {
-                return (new ApiResponse())->error(400, $e->getMessage());
-            }
-
-            $user->save();
-
-            return (new ApiResponse())->error(200, 'Resource #'.$id.' updated!');
-        });
+        Route::put('/users/{id}', function (Request $request, $version, $id) {
+            return (new \Karellens\LAF\Http\Controllers\ApiController($request, $version))->update($request, $id);
+        })->name('api.update');
 
         // destroy
-        Route::delete('/users/{id}', function (Request $request, $id) {
-            try
-            {
-                App\User::findOrFail($id)->delete();
-                return (new ApiResponse())->error(200, 'Resource #'.$id.' deleted!');
-            }
-            catch (ModelNotFoundException $e)
-            {
-                return (new ApiResponse())->error(404, $e->getMessage());
-            }
-        });
+        Route::delete('/users/{id}', function (Request $request, $version, $id) {
+            return (new \Karellens\LAF\Http\Controllers\ApiController($request, $version))->destroy($id);
+        })->name('api.destroy');
 
 });

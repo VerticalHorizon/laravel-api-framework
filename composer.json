@@ -1,7 +1,7 @@
 {
-    "name": "karellens/pretty-api",
+    "name": "karellens/laravel-api-framework",
     "description": "",
-    "homepage": "https://github.com/karellens/pretty-api",
+    "homepage": "https://github.com/karellens/laravel-api-framework",
     "keywords": [],
     "license": "MIT",
     "authors": [
@@ -11,7 +11,7 @@
         }
     ],
     "support": {
-        "issues": "https://github.com/karellens/pretty-api/issues"
+        "issues": "https://github.com/karellens/laravel-api-framework/issues"
     },
     "require": {
         "php": ">=5.6.4",
@@ -26,7 +26,7 @@
         ],
         "psr-4": {
             "App\\": "app/",
-            "Karellens\\PrettyApi\\": "packages/karellens/pretty-api/src"
+            "Karellens\\LAF\\": "packages/karellens/laravel-api-framework/src"
         }
     },
     "minimum-stability": "dev"

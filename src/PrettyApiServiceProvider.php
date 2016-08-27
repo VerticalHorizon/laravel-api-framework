@@ -1,10 +1,10 @@
 <?php
 
-namespace Karellens\PrettyApi;
+namespace Karellens\LAF;
 
 use Illuminate\Support\ServiceProvider;
 
-class PrettyApiServiceProvider extends ServiceProvider
+class LafServiceProvider extends ServiceProvider
 {
     /**
      * Bootstrap the application services.
@@ -24,6 +24,6 @@ class PrettyApiServiceProvider extends ServiceProvider
     public function register()
     {
         include __DIR__.'/routes.php';
-        $this->app->make('Karellens\PrettyApi\Http\Controllers\ApiController');
+        $this->app->make('Karellens\LAF\Http\Controllers\ApiController');
     }
 }

@@ -1,6 +1,6 @@
 <?php
 
-namespace Karellens\PrettyApi\Http\Controllers;
+namespace Karellens\LAF\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;

@@ -1,6 +1,6 @@
 <?php
 
-namespace Karellens\PrettyApi\Http\Exceptions;
+namespace Karellens\LAF\Http\Exceptions;
 
 
 use RuntimeException;

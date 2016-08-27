@@ -3,8 +3,8 @@
 use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
-use Karellens\PrettyApi\ApiResponse;
-use Karellens\PrettyApi\Http\Exceptions\DataNotReceivedException;
+use Karellens\LAF\ApiResponse;
+use Karellens\LAF\Http\Exceptions\DataNotReceivedException;
 
 $available_versions = '(1|2|3)';
 Route::pattern('id', '[0-9]+');

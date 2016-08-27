@@ -1,6 +1,6 @@
 <?php
 
-namespace Karellens\PrettyApi;
+namespace Karellens\LAF;
 
 use Illuminate\Http\Response;
 

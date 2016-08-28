@@ -9,10 +9,17 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Routing\Route;
 use Karellens\LAF\ApiResponse;
 use Karellens\LAF\Http\Exceptions\DataNotReceivedException;
+use Karellens\LAF\Facades\QueryMap;
+use Karellens\LAF\ReflectionModel;
 
 class ApiController extends Controller
 {
     protected $version;
+
+    protected $alias;
+
+    protected $modelClass;
+
     /**
      * Setup api version
      *
@@ -20,9 +27,18 @@ class ApiController extends Controller
      * @param  string  $version
      * @return void
      */
-    public function __construct(Request $request, $version = null, $id = null)
+    public function __construct(Request $request, $entity = '',  $version = null, $id = null)
     {
         $this->version = $version;
+        $this->alias = $entity;
+
+        $this->modelClass = (new ReflectionModel($this->alias))->getClass();
+    }
+
+    protected function getPageSize()
+    {
+        $pagesize = (int)request()->input('pagesize', config('api.default_pagesize'));
+        return $pagesize > config('api.max_pagesize') ? config('api.max_pagesize') : $pagesize;
     }
 
     /**
@@ -32,8 +48,15 @@ class ApiController extends Controller
      */
     public function index()
     {
-        dd(get_class(\App\User::get()));
-        return \App\User::get();
+        QueryMap
+            ::setModelClass($this->modelClass)
+            ->handleFields(request()->input('fields'))
+            ->handleFilters(request()->input('filter'))
+            ->handleOrders(request()->input('order'))
+        ;
+
+        return QueryMap::getQuery()->paginate( $this->getPageSize() );
+        // return (new ApiResponse())->paginate(\App\User::query());
     }
 
     /**
@@ -54,25 +77,10 @@ class ApiController extends Controller
      */
     public function store(Request $request)
     {
-        try
-        {
-            if($request->isJson())
-            {
-                $user = new \App\User($request->all());
-            }
-            else
-            {
-                throw new DataNotReceivedException('Bad request! No data received.');
-            }
+        $user = new \App\User($request->all());
+        $user->save();
 
-            $user->save();
-
-            return (new ApiResponse())->error(200, 'Resource #'.$user->id.' created!');
-        }
-        catch (DataNotReceivedException $e)
-        {
-            return (new ApiResponse())->error(400, $e->getMessage());
-        }
+        return (new ApiResponse())->error(200, 'Resource #'.$user->id.' created!');
     }
 
     /**
@@ -85,7 +93,7 @@ class ApiController extends Controller
     {
         try
         {
-            dd(get_class( \App\User::where('id', '=', $id)->firstOrFail() ));
+            dd(get_class( \App\User::where('id', '=', $id) ));
             return \App\User::where('id', '=', $id)->firstOrFail();
         }
         catch (ModelNotFoundException $e)
@@ -123,22 +131,7 @@ class ApiController extends Controller
             return (new ApiResponse())->error(404, $e->getMessage());
         }
 
-        try
-        {
-            if($request->isJson())
-            {
-                $user->fill($request->all());
-            }
-            else
-            {
-                throw new DataNotReceivedException('Bad request! No data received.');
-            }
-        }
-        catch (DataNotReceivedException $e)
-        {
-            return (new ApiResponse())->error(400, $e->getMessage());
-        }
-
+        $user->fill($request->all());
         $user->save();
 
         return (new ApiResponse())->error(200, 'Resource #'.$id.' updated!');
@@ -155,11 +148,12 @@ class ApiController extends Controller
         try
         {
             \App\User::findOrFail($id)->delete();
-            return (new ApiResponse())->error(200, 'Resource #'.$id.' deleted!');
         }
         catch (ModelNotFoundException $e)
         {
             return (new ApiResponse())->error(404, $e->getMessage());
         }
+
+        return (new ApiResponse())->error(200, 'Resource #'.$id.' deleted!');
     }
 }

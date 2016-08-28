@@ -24,6 +24,10 @@ class LafServiceProvider extends ServiceProvider
     public function register()
     {
         include __DIR__.'/routes.php';
-        $this->app->make('Karellens\LAF\Http\Controllers\ApiController');
+
+        $this->app->singleton('Karellens\LAF\QueryMap', function ($app) {
+            return new \Karellens\LAF\QueryMap;
+        });
+//        $this->app->make('Karellens\LAF\Http\Controllers\ApiController');
     }
 }

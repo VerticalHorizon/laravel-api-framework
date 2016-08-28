@@ -6,9 +6,9 @@ $ php artisan vendor:publish --provider="Karellens\LAF\LafServiceProvider"
 ```
 
 Then add the following line into the `providers` array:
-
-    'Baum\Providers\BaumServiceProvider',
-
+```php
+    Karellens\LAF\LafServiceProvider::class,
+```
 
 And middleware
 ```php

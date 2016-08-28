@@ -22,11 +22,11 @@
     },
     "autoload": {
         "classmap": [
-            "src/Http/Controllers"
+            "src/LaravelApiFramework/Http/Controllers"
         ],
         "psr-4": {
             "App\\": "app/",
-            "Karellens\\LAF\\": "src"
+            "Karellens\\LAF\\": "src/LaravelApiFramework/"
         }
     },
     "minimum-stability": "dev"

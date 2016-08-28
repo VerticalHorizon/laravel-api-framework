@@ -13,7 +13,7 @@ class LafServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        $this->publishes([realpath(__DIR__.'/../config/api.php') => config_path('api.php')]);
+        $this->publishes([realpath(__DIR__.'/../../config/api.php') => config_path('api.php')]);
     }
 
     /**

@@ -25,14 +25,17 @@ class ReflectionModel
      */
     public function getClass()
     {
-        $modelClass = '';
+        $modelClass = null;
 
-        // TODO: make ability to add multiple namespaces
-        if(class_exists('\App\\'.$this->modelName))
-        {
-            $modelClass = '\App\\'.$this->modelName;
+        foreach (config('api.models_namespaces') as $ns) {
+            if(class_exists($ns.$this->modelName))
+            {
+                $modelClass = $ns.$this->modelName;
+                break;
+            }
         }
-        else
+
+        if(!$modelClass)
         {
             // throw 404
         }

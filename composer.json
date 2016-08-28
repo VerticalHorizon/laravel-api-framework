@@ -22,7 +22,7 @@
     },
     "autoload": {
         "classmap": [
-            "src/Controllers"
+            "src/Http/Controllers"
         ],
         "psr-4": {
             "App\\": "app/",

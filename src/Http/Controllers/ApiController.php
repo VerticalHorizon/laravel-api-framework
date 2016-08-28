@@ -4,11 +4,8 @@ namespace Karellens\LAF\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
-use App\Http\Requests;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Routing\Route;
 use Karellens\LAF\ApiResponse;
-use Karellens\LAF\Http\Exceptions\DataNotReceivedException;
 use Karellens\LAF\Facades\QueryMap;
 use Karellens\LAF\ReflectionModel;
 
@@ -60,16 +57,6 @@ class ApiController extends Controller
     }
 
     /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
      * Store a newly created resource in storage.
      *
      * @param  \Illuminate\Http\Request  $request
@@ -93,24 +80,12 @@ class ApiController extends Controller
     {
         try
         {
-            dd(get_class( \App\User::where('id', '=', $id) ));
             return \App\User::where('id', '=', $id)->firstOrFail();
         }
         catch (ModelNotFoundException $e)
         {
             return (new ApiResponse())->error(404, $e->getMessage());
         }
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function edit($id)
-    {
-        //
     }
 
     /**

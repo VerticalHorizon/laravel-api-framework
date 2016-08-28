@@ -192,7 +192,7 @@ class QueryMap
         return array_filter($fields, function($field) use ($valid_relations) {
             $flag = false;
             foreach ($valid_relations as $valid_relation) {
-                $flag = strpos($field, $valid_relation.'.') === 0;
+                $flag = strpos($field, $valid_relation) === 0;
             }
             return $flag;
         });

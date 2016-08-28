@@ -17,7 +17,6 @@ Route::group([
 
         // index
         Route::get('/', function (Request $request, $version, $entity) {
-//            dd($entity);
             return (new \Karellens\LAF\Http\Controllers\ApiController($request, $entity, $version))->index();
         })->name('api.index');
 

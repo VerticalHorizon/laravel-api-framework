@@ -14,6 +14,7 @@ class LafServiceProvider extends ServiceProvider
     public function boot()
     {
         $this->publishes([realpath(__DIR__.'/../../config/api.php') => config_path('api.php')]);
+        $this->publishes([realpath(__DIR__.'/../../config/rules.php') => config_path('rules.php')]);
     }
 
     /**
@@ -27,6 +28,9 @@ class LafServiceProvider extends ServiceProvider
 
         $this->app->singleton('Karellens\LAF\QueryMap', function ($app) {
             return new \Karellens\LAF\QueryMap;
+        });
+        $this->app->singleton('Karellens\LAF\Rules', function ($app) {
+            return new \Karellens\LAF\Rules;
         });
 //        $this->app->make('Karellens\LAF\Http\Controllers\ApiController');
     }

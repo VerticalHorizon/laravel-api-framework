@@ -21,12 +21,11 @@ class ApiController extends Controller
      * Setup api version
      *
      * @param  \Illuminate\Http\Request  $request
-     * @param  string  $version
      * @return void
      */
-    public function __construct(Request $request, $entity = '',  $version = null, $id = null)
+    public function __construct(Request $request, $entity = '',  $id = null)
     {
-        $this->version = $version;
+//        $this->version = $version;
         $this->alias = $entity;
 
         $this->modelClass = (new ReflectionModel($this->alias))->getClass();
@@ -53,7 +52,6 @@ class ApiController extends Controller
         ;
 
         return QueryMap::getQuery()->paginate( $this->getPageSize() );
-        // return (new ApiResponse())->paginate(\App\User::query());
     }
 
     /**
@@ -64,10 +62,10 @@ class ApiController extends Controller
      */
     public function store(Request $request)
     {
-        $user = new \App\User($request->all());
-        $user->save();
+        $object = new $this->modelClass($request->all());
+        $object->save();
 
-        return (new ApiResponse())->error(200, 'Resource #'.$user->id.' created!');
+        return (new ApiResponse())->error(200, 'Resource #'.$object->id.' created!');
     }
 
     /**
@@ -76,11 +74,16 @@ class ApiController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function show($id)
+    public function show(Request $request, $id)
     {
         try
         {
-            return \App\User::where('id', '=', $id)->firstOrFail();
+            QueryMap
+                ::setModelClass($this->modelClass)
+                ->handleFields(request()->input('fields'))
+            ;
+
+            return QueryMap::getQuery()->where('id', '=', $id)->firstOrFail();
         }
         catch (ModelNotFoundException $e)
         {
@@ -99,15 +102,15 @@ class ApiController extends Controller
     {
         try
         {
-            $user = \App\User::findOrFail($id);
+            $object = call_user_func([$this->modelClass, 'findOrFail'], $id);
         }
         catch (ModelNotFoundException $e)
         {
             return (new ApiResponse())->error(404, $e->getMessage());
         }
 
-        $user->fill($request->all());
-        $user->save();
+        $object->fill($request->all());
+        $object->save();
 
         return (new ApiResponse())->error(200, 'Resource #'.$id.' updated!');
     }
@@ -118,11 +121,12 @@ class ApiController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         try
         {
-            \App\User::findOrFail($id)->delete();
+            $object = call_user_func([$this->modelClass, 'findOrFail'], $id);
+            $object->delete();
         }
         catch (ModelNotFoundException $e)
         {

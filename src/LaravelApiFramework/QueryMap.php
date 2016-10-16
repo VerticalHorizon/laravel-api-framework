@@ -101,7 +101,9 @@ class QueryMap
 
         }
 
-        $this->query->with($relations);
+        if(!empty($relations)) {
+            $this->query->with($relations);
+        }
 
         return $this;
     }

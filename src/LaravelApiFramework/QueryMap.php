@@ -83,27 +83,28 @@ class QueryMap
      */
     public function handleFields($fields)
     {
-        $relations = (new ReflectionModel())->getSupportedRelations($this->modelClass);
-
         if($fields)
         {
             $fields = explode(self::FIELDS_DELIMETER, $fields);
 
             // leave only specified relations.
             // some of them can have child relations. so we compare them as `starts-with`
-            $relations = $this->extractRelations($fields, $relations);
+            $relations = $this->extractRelations($fields);
 
-            // do not forget `id`
             $columns = array_diff($fields, $relations);
-            array_unshift($columns, 'id');
 
-            $this->query->select($columns);
+            if(!empty($columns)) {
+                // do not forget `id`
+                array_unshift($columns, 'id');
 
+                $this->query->select($columns);
+            }
+            // TODO: make ability to get some realtions and some columns together (now to get relations we need `column_id` )
+            elseif(!empty($relations)) {
+                $this->query->with($relations);
+            }
         }
 
-        if(!empty($relations)) {
-            $this->query->with($relations);
-        }
 
         return $this;
     }
@@ -189,12 +190,14 @@ class QueryMap
      * @param $valid_relations
      * @return array
      */
-    private function extractRelations($fields, $valid_relations)
+    private function extractRelations($fields)
     {
+        $valid_relations = (new ReflectionModel())->getSupportedRelations($this->modelClass);
+
         return array_filter($fields, function($field) use ($valid_relations) {
             $flag = false;
             foreach ($valid_relations as $valid_relation) {
-                $flag = strpos($field, $valid_relation) === 0;
+                $flag = $flag || strpos($field, $valid_relation) !== false;
             }
             return $flag;
         });

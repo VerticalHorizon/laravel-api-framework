@@ -4,7 +4,7 @@ return [
     'v1' => [
         // only allowable routes
         'users' => [
-            // onle restricted methods
+            // only restricted methods
             'show'      => false,
             'store'     => 'auth:api',
             'update'    => 'auth:api',

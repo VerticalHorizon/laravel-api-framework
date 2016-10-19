@@ -52,7 +52,7 @@ Route::group([
                     'as'    => $version.'.'.$entity.'.'.$name,          // '.users.index' if no version
                 ];
 
-                // appy middleware
+                // apply middleware
                 if(strlen($rule)) {
                     $route_attributes['middleware'] = $rule;
                 }
@@ -64,68 +64,12 @@ Route::group([
                     array_push($route_attributes, $default_controller);
                 }
 
-//                var_dump($route_attributes);
                 $router->{$seg_act[1]}(                    // http method
                     $version.'/'.$entity.'/'.$seg_act[0],  // uri segment
                     $route_attributes
                 );
             }
 
-
         }
-
     }
-
-//    $router->any('{entity}/{id?}', function (Request $request, $version, $entity, $id = null) {
-//        $action = '';
-//        switch ($request->getMethod()) {
-//            // index
-//            case 'GET' && $id ===null:
-//                $action = 'index';
-//                break;
-//
-//            // store
-//            case 'POST' && $id === null:
-//                $action = 'store';
-//                break;
-//
-//            //show
-//            case 'GET' && $id !== null:
-//                $action = 'show';
-//                break;
-//
-//            // update
-//            case 'PUT' && $id !== null:
-//                $action = 'update';
-//                break;
-//
-//            // destroy
-//            case 'DELETE' && $id !== null:
-//                $action = 'destroy';
-//                break;
-//        }
-//
-//        return (new \Karellens\LAF\Http\Controllers\ApiController($request, $entity, $version))->index();
-//    });
-//
-//        // store
-//        Route::post('/', function (Request $request, $version, $entity) {
-//            return (new \Karellens\LAF\Http\Controllers\ApiController($request, $entity, $version))->store($request);
-//        })->name('api.store');
-//
-//        // show
-//        Route::get('/{id}', function (Request $request, $version, $entity, $id) {
-//            return (new \Karellens\LAF\Http\Controllers\ApiController($request, $entity, $version))->show($id);
-//        })->name('api.show');
-//
-//        // update
-//        Route::put('/{id}', function (Request $request, $version, $entity, $id) {
-//            return (new \Karellens\LAF\Http\Controllers\ApiController($request, $entity, $version))->update($request, $id);
-//        })->name('api.update');
-//
-//        // destroy
-//        Route::delete('/{id}', function (Request $request, $version, $entity, $id) {
-//            return (new \Karellens\LAF\Http\Controllers\ApiController($request, $entity, $version))->destroy($id);
-//        })->name('api.destroy');
-
 });

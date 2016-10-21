@@ -117,6 +117,7 @@ class QueryMap
         if($filters)
         {
             $conditions = $this->createConditionsMap($filters);
+
             foreach ($conditions as $subject => $subject_conditions)
             {
                 if($subject === '.')
@@ -130,14 +131,15 @@ class QueryMap
                 }
                 else
                 {
-                    $relation_table = (new ReflectionModel($subject))->getTable();
+                    // $relation_table = (new ReflectionModel($subject))->getTable();
 
-                    $this->query->whereHas($subject, function($query) use ($subject_conditions, $relation_table) {
+                    $this->query->whereHas($subject, function($query) use ($subject_conditions) {
                         foreach ($subject_conditions as $subject_condition) {
                             list($field, $operand, $value) = explode(':', $subject_condition);
                             $values = explode(',', $value);
 
-                            $query = $this->operators[$operand]($query, $relation_table.'.'.$field, $values);
+                            // $query = $this->operators[$operand]($query, $relation_table.'.'.$field, $values);
+                            $query = $this->operators[$operand]($query, $field, $values);
                         }
 
                         return $query;

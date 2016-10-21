@@ -24,7 +24,7 @@ class ApiResponse
      * @param string $message
      * @return mixed
      */
-    public function error($code, $message)
+    public function message($code, $message)
     {
         return response(
             ['error' => ['code' => $code, 'message' => $message]],

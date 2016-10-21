@@ -5,7 +5,7 @@ namespace Karellens\LAF\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Karellens\LAF\ApiResponse;
+use Karellens\LAF\Facades\ApiResponse;
 use Karellens\LAF\Facades\QueryMap;
 use Karellens\LAF\ReflectionModel;
 
@@ -21,7 +21,6 @@ class ApiController extends Controller
      * Setup api version
      *
      * @param  \Illuminate\Http\Request  $request
-     * @return void
      */
     public function __construct(Request $request, $entity = '',  $id = null)
     {
@@ -65,7 +64,7 @@ class ApiController extends Controller
         $object = new $this->modelClass($request->all());
         $object->save();
 
-        return (new ApiResponse())->error(200, 'Resource #'.$object->id.' created!');
+        return ApiResponse::message(200, 'Resource #'.$object->id.' created!');
     }
 
     /**
@@ -87,7 +86,7 @@ class ApiController extends Controller
         }
         catch (ModelNotFoundException $e)
         {
-            return (new ApiResponse())->error(404, $e->getMessage());
+            return ApiResponse::message(404, $e->getMessage());
         }
     }
 
@@ -106,13 +105,13 @@ class ApiController extends Controller
         }
         catch (ModelNotFoundException $e)
         {
-            return (new ApiResponse())->error(404, $e->getMessage());
+            return ApiResponse::message(404, $e->getMessage());
         }
 
         $object->fill($request->all());
         $object->save();
 
-        return (new ApiResponse())->error(200, 'Resource #'.$id.' updated!');
+        return ApiResponse::message(200, 'Resource #'.$id.' updated!');
     }
 
     /**
@@ -130,9 +129,9 @@ class ApiController extends Controller
         }
         catch (ModelNotFoundException $e)
         {
-            return (new ApiResponse())->error(404, $e->getMessage());
+            return ApiResponse::message(404, $e->getMessage());
         }
 
-        return (new ApiResponse())->error(200, 'Resource #'.$id.' deleted!');
+        return ApiResponse::message(200, 'Resource #'.$id.' deleted!');
     }
 }

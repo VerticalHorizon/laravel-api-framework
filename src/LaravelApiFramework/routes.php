@@ -4,68 +4,56 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Router;
 use Karellens\LAF\Facades\Rules;
 
-$available_actions =
-    [
-        'index'     => ['', 'get'],
-        'store'     => ['', 'post'],
-        'show'      => ['{id}', 'get'],
-        'update'    => ['{id}', 'put'],
-        'destroy'   => ['{id}', 'delete'],
-    ];
-
-Route::pattern('version', '[0-9]+');
 Route::pattern('id', '[0-9]+');
-Route::pattern('entity', '[0-9a-z_-]+');    // plural
 
 /* map api routes */
 Route::group([
     'middleware' => ['api', 'laf'],
     'namespace' => 'App\Http\Controllers',
     'prefix' => 'api',
-], function (Router $router) use ($available_actions) {
+], function (Router $router) {
 
 
     $rules_config = Rules::getRules();
 
     // generate routes
     foreach ($rules_config as $version => &$entities) {
-        foreach ($entities as $entity => &$rules) {
+        foreach ($entities as $entity => &$actions) {
             // $entity  ~> users
-            // $rules   ~> ['store' => 'auth:api', 'show' => false, 'OtherController@index' => 'smthng',]
+            // $actions   ~> ['store' => ['middleware' => 'auth:api'], 'show' => false,]
 
-            foreach ($available_actions as $name => &$seg_act) {
-                // $name    ~> 'index'  ||  'OtherController@index'
-                // $seg_act      ~> ['', 'get']
-
+            foreach ($actions as $action => &$rules) {
                 // skip blocked action ('show' => false)
-                if(Rules::isActionBlocked($version.'.'.$entity.'.'.$name)) {
+                if(Rules::isActionBlocked($version.'.'.$entity.'.'.$action)) {
                     continue;
                 }
 
-                // return CustomController@action or false
-                $custom_controller_action = Rules::getCustomControllerAndAction($version.'.'.$entity.'.'.$name);
-                $rule = Rules::getRule($version.'.'.$entity.'.'.$name);
-                $default_controller = function (Request $request, $id = null) use ($entity, $name)  {
-                    return (new \Karellens\LAF\Http\Controllers\ApiController($request, $entity))->{$name}($request, $id);
+                // return CustomController or false
+                $custom_controller = Rules::getCustomController($version.'.'.$entity.'.'.$action);
+
+                $default_controller = function (Request $request, $id = null) use ($entity, $action)  {
+                    return (new \Karellens\LAF\Http\Controllers\ApiController($request, $entity))->{$action}($request, $id);
                 };
+
                 $route_attributes = [
-                    'as'    => $version.'.'.$entity.'.'.$name,          // '.users.index' if no version
+                    'as'    => $version.'.'.$entity.'.'.$action,          // '.users.index' if no version
                 ];
 
                 // apply middleware
-                if(strlen($rule)) {
-                    $route_attributes['middleware'] = $rule;
+                if(isset($rules['middleware'])) {
+                    $route_attributes['middleware'] = $rules['middleware'];
                 }
 
-                if($custom_controller_action) {
-                    $route_attributes['uses'] = $custom_controller_action;
+                if($custom_controller) {
+                    $route_attributes['uses'] = $custom_controller.'@'.$action;
                 }
                 else {
                     array_push($route_attributes, $default_controller);
                 }
 
-                $router->{$seg_act[1]}(                    // http method
-                    $version.'/'.$entity.'/'.$seg_act[0],  // uri segment
+                $router->match(
+                    $rules['method'],
+                    $version.'/'.$entity.'/'. (isset($rules['postfix']) ? $rules['postfix'] : $action),  // uri segment
                     $route_attributes
                 );
             }

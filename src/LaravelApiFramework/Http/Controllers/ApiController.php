@@ -5,6 +5,7 @@ namespace Karellens\LAF\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Routing\Route;
 use Karellens\LAF\Facades\ApiResponse;
 use Karellens\LAF\Facades\QueryMap;
 use Karellens\LAF\ReflectionModel;

@@ -1,21 +1,31 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: karellen
- * Date: 10/13/16
- * Time: 4:33 PM
- */
-
 namespace Karellens\LAF;
 
 
 class Rules
 {
+    const AVAILABLE_ACTIONS = [
+        'index'     => ['controller' => 'ApiController', 'middleware' => '', 'method' => 'get', 'postfix' => ''],
+        'store'     => ['controller' => 'ApiController', 'middleware' => '', 'method' => 'post', 'postfix' => ''],
+        'show'      => ['controller' => 'ApiController', 'middleware' => '', 'method' => 'get', 'postfix' => '{id}'],
+        'update'    => ['controller' => 'ApiController', 'middleware' => '', 'method' => 'put', 'postfix' => '{id}'],
+        'destroy'   => ['controller' => 'ApiController', 'middleware' => '', 'method' => 'delete', 'postfix' => '{id}'],
+    ];
+
     protected $rules;
 
     public function __construct()
     {
+        // get user defined rules
         $this->rules = config('rules');
+        // merge default rules with user defined
+        foreach ($this->rules as $version => &$entities) {
+            foreach ($entities as $entity => &$rules) {
+                $this->rules[$version][$entity] = array_replace_recursive(self::AVAILABLE_ACTIONS, $rules);
+            }
+        }
+
+        $this->array_unset_recursive($this->rules, '');
     }
 
     /**
@@ -80,20 +90,24 @@ class Rules
      * @param string
      * @return string
      */
-    public function getCustomControllerAndAction($name)
+    public function getCustomController($name)
     {
         list($version, $entity, $action) = explode('.', $name);
-        $result = false;
 
-        foreach ($this->rules[$version][$entity] as $rule_action => &$rule) {
-            $result = $result || strpos($rule_action, '@'.$action) !== false;
-            if($result) {
-//                $result = explode('@', $rule_action);
-                $result = $rule_action;
-                break;
+        return isset($this->rules[$version][$entity][$action]['controller'])
+            && $this->rules[$version][$entity][$action]['controller'] !== 'ApiController' ?
+            $this->rules[$version][$entity][$action]['controller'] :
+            false
+            ;
+    }
+
+    private function array_unset_recursive(&$array, $remove) {
+        if (!is_array($remove)) $remove = array($remove);
+        foreach ($array as $key => &$value) {
+            if (in_array($value, $remove)) unset($array[$key]);
+            else if (is_array($value)) {
+                $this->array_unset_recursive($value, $remove);
             }
         }
-
-        return $result;
     }
 }

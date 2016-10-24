@@ -122,31 +122,45 @@ class QueryMap
             {
                 if($subject === '.')
                 {
-                    foreach ($subject_conditions as $subject_condition) {
-                        list($field, $operand, $value) = explode(':', $subject_condition);
-                        $values = explode(',', $value);
-
-                        $this->query = $this->operators[$operand]($this->query, $field, $values);
-                    }
+                    $this->query = $this->applyRulesToQuery($this->query, $subject_conditions);
                 }
                 else
                 {
-                    // $relation_table = (new ReflectionModel($subject))->getTable();
-
                     $this->query->whereHas($subject, function($query) use ($subject_conditions) {
-                        foreach ($subject_conditions as $subject_condition) {
-                            list($field, $operand, $value) = explode(':', $subject_condition);
-                            $values = explode(',', $value);
-
-                            // $query = $this->operators[$operand]($query, $relation_table.'.'.$field, $values);
-                            $query = $this->operators[$operand]($query, $field, $values);
-                        }
-
-                        return $query;
+                        return $this->applyRulesToQuery($query, $subject_conditions);
                     });
                 }
             }
         }
+
+        return $this;
+    }
+
+    /**
+     * @return $this
+     */
+    public function handleRelationsFilters($filters)
+    {
+        if($filters)
+        {
+            $conditions = $this->createConditionsMap($filters);
+            $with_map = [];
+
+            foreach ($conditions as $subject => $subject_conditions)
+            {
+                if($subject !== '.')
+                {
+                    $with_map[$subject] = function($query) use ($subject_conditions) {
+                        return $this->applyRulesToQuery($query, $subject_conditions);
+                    };
+                }
+            }
+
+            if(!empty($with_map)) {
+                $this->query->with($with_map);
+            }
+        }
+
         return $this;
     }
 
@@ -185,6 +199,18 @@ class QueryMap
         }
 
         return $conditions;
+    }
+
+    protected function applyRulesToQuery($query, $subject_conditions)
+    {
+        foreach ($subject_conditions as $subject_condition) {
+            list($field, $operand, $value) = explode(':', $subject_condition);
+            $values = explode(',', $value);
+
+            $query = $this->operators[$operand]($query, $field, $values);
+        }
+
+        return $query;
     }
 
     /**

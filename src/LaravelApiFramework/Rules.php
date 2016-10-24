@@ -25,7 +25,7 @@ class Rules
             }
         }
 
-        $this->array_unset_recursive($this->rules, '');
+        self::array_unset_recursive($this->rules, ['middleware' => '']);
     }
 
     /**
@@ -101,12 +101,15 @@ class Rules
             ;
     }
 
-    private function array_unset_recursive(&$array, $remove) {
-        if (!is_array($remove)) $remove = array($remove);
+    /**
+     * @param $array
+     * @param $remove
+     */
+    public static function array_unset_recursive(&$array, $remove) {
         foreach ($array as $key => &$value) {
-            if (in_array($value, $remove)) unset($array[$key]);
+            if (isset($remove[$key]) && $remove[$key] === $value) unset($array[$key]);
             else if (is_array($value)) {
-                $this->array_unset_recursive($value, $remove);
+                self::array_unset_recursive($value, $remove);
             }
         }
     }

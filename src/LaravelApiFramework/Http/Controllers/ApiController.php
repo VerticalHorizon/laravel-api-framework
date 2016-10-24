@@ -81,6 +81,7 @@ class ApiController extends Controller
             QueryMap
                 ::setModelClass($this->modelClass)
                 ->handleFields(request()->input('fields'))
+                ->handleRelationsFilters(request()->input('filter'))
             ;
 
             return QueryMap::getQuery()->where('id', '=', $id)->firstOrFail();

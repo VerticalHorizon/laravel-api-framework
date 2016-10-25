@@ -29,6 +29,10 @@ class QueryMap
     protected $query;
     protected $modelClass;
 
+    protected $fields;
+    protected $filters;
+    protected $orders;
+
     public function __construct()
     {
         $this->operators = [
@@ -90,7 +94,6 @@ class QueryMap
             // leave only specified relations.
             // some of them can have child relations. so we compare them as `starts-with`
             $relations = $this->extractRelations($fields);
-
             $columns = array_diff($fields, $relations);
 
             if(!empty($columns)) {
@@ -173,16 +176,39 @@ class QueryMap
 
     /**
      * @param object $entity
+     * @param array $fields
      * @param array $filters
      * @return array
      */
-    public function callScopes($entity, $filters)
+    public function callScopes($entity, $fields, $filters)
     {
         $appends = [];
 
+        // append by fields if the same not present in filters
+//        foreach ($fields as $rs) {
+//            if(!isset($appends[$rs])) {
+//                $appends[$rs] = $entity->{$this->scopes[$rs]}()->get();
+//            }
+//        }
+
         foreach ($filters as $filter) {
             list($name, $rule) = explode('.', $filter);
+
             $scoped = call_user_func([$entity, $name]);
+
+            $same_from_field = self::extractFromFields(implode(',', $fields), $name);
+
+            $same_with_rels = array_map(function($e){
+                $scope_rel = explode('.', $e);
+                if(isset($scope_rel[1])) {
+                    return $scope_rel[1];
+                }
+            }, $same_from_field);
+
+            if(!empty($same_with_rels)) {
+                $scoped = $scoped->with($same_with_rels);
+            }
+
             $appends[$name] = $this->applyRulesToQuery($scoped, (array)$rule)->get();
         }
 
@@ -196,54 +222,73 @@ class QueryMap
     public static function parseFields($fields_string)
     {
         return explode(self::FIELDS_DELIMETER, $fields_string);
+
     }
+
 
     /**
      * @param mixed $needles
-     * @param string $filters
+     * @param string $fields_string
      * @return array
      */
-    public static function extractFromFilters($needles, $filters)
+    public static function extractFromFields($fields_string, $needles)
     {
         if(!is_array($needles)) $needles = [$needles];
 
-        $filters = explode(self::ANDFILTERS_DELIMETER, $filters);
-        $extracted = [];
+        $fields = explode(self::FIELDS_DELIMETER, $fields_string);
 
-        foreach ($filters as $filter) {
-            $name_field = explode(':', $filter)[0];
-            $name = explode('.', $name_field)[0];
+        return array_filter($fields, function($field) use ($needles) {
+            return in_array(explode('.', $field)[0], $needles);
+        });
+    }
 
-            if(in_array($name, $needles)) {
-                $extracted []= $filter;
-            }
-        }
 
-        return $extracted;
+    /**
+     * @param string $fields_string
+     * @param mixed $needles
+     * @return array
+     */
+    public static function subtractFromFields($fields_string, $needles)
+    {
+        if(!is_array($needles)) $needles = [$needles];
+
+        $fields = explode(self::FIELDS_DELIMETER, $fields_string);
+
+        return array_filter($fields, function($field) use ($needles) {
+            return !in_array(explode('.', $field)[0], $needles);
+        });
     }
 
     /**
+     * @param string $filters_string
      * @param mixed $needles
-     * @param string $filters
      * @return array
      */
-    public static function subtractFromFilters($needles, $filters)
+    public static function extractFromFilters($filters_string, $needles)
     {
         if(!is_array($needles)) $needles = [$needles];
 
-        $filters = explode(self::ANDFILTERS_DELIMETER, $filters);
-        $extracted = [];
+        $filters = explode(self::ANDFILTERS_DELIMETER, $filters_string);
 
-        foreach ($filters as $filter) {
-            $name_field = explode(':', $filter)[0];
-            $name = explode('.', $name_field)[0];
+        return array_filter($filters, function($filter) use ($needles) {
+            return in_array(explode('.', $filter)[0], $needles);
+        });
+    }
 
-            if(!in_array($name, $needles)) {
-                $extracted []= $filter;
-            }
-        }
+    /**
+     * @param string $filters_string
+     * @param mixed $needles
+     * @return array
+     */
+    public static function subtractFromFilters($filters_string, $needles)
+    {
+        if(!is_array($needles)) $needles = [$needles];
 
-        return $extracted;
+        $filters = explode(self::ANDFILTERS_DELIMETER, $filters_string);
+
+        return array_filter($filters, function($filter) use ($needles) {
+            return !in_array(explode('.', $filter)[0], $needles);
+        });
     }
 
     /**
@@ -289,7 +334,6 @@ class QueryMap
 
     /**
      * @param $fields
-     * @param $valid_relations
      * @return array
      */
     private function extractRelations($fields)
@@ -297,11 +341,7 @@ class QueryMap
         $valid_relations = (new ReflectionModel())->getSupportedRelations($this->modelClass);
 
         return array_filter($fields, function($field) use ($valid_relations) {
-            $flag = false;
-            foreach ($valid_relations as $valid_relation) {
-                $flag = $flag || strpos($field, $valid_relation) !== false;
-            }
-            return $flag;
+            return in_array(explode('.', $field)[0], $valid_relations);
         });
     }
 

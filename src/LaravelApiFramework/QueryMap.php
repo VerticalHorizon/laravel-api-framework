@@ -85,7 +85,7 @@ class QueryMap
     {
         if($fields)
         {
-            $fields = explode(self::FIELDS_DELIMETER, $fields);
+            $fields = self::parseFields($fields);
 
             // leave only specified relations.
             // some of them can have child relations. so we compare them as `starts-with`
@@ -99,7 +99,6 @@ class QueryMap
 
                 $this->query->select($columns);
             }
-            // TODO: make ability to get some realtions and some columns together (now to get relations we need `column_id` )
             elseif(!empty($relations)) {
                 $this->query->with($relations);
             }
@@ -170,6 +169,81 @@ class QueryMap
     public function handleOrders()
     {
         return $this;
+    }
+
+    /**
+     * @param object $entity
+     * @param array $filters
+     * @return array
+     */
+    public function callScopes($entity, $filters)
+    {
+        $appends = [];
+
+        foreach ($filters as $filter) {
+            list($name, $rule) = explode('.', $filter);
+            $scoped = call_user_func([$entity, $name]);
+            $appends[$name] = $this->applyRulesToQuery($scoped, (array)$rule)->get();
+        }
+
+        return $appends;
+    }
+
+    /**
+     * @param string $fields_string
+     * @return array
+     */
+    public static function parseFields($fields_string)
+    {
+        return explode(self::FIELDS_DELIMETER, $fields_string);
+    }
+
+    /**
+     * @param mixed $needles
+     * @param string $filters
+     * @return array
+     */
+    public static function extractFromFilters($needles, $filters)
+    {
+        if(!is_array($needles)) $needles = [$needles];
+
+        $filters = explode(self::ANDFILTERS_DELIMETER, $filters);
+        $extracted = [];
+
+        foreach ($filters as $filter) {
+            $name_field = explode(':', $filter)[0];
+            $name = explode('.', $name_field)[0];
+
+            if(in_array($name, $needles)) {
+                $extracted []= $filter;
+            }
+        }
+
+        return $extracted;
+    }
+
+    /**
+     * @param mixed $needles
+     * @param string $filters
+     * @return array
+     */
+    public static function subtractFromFilters($needles, $filters)
+    {
+        if(!is_array($needles)) $needles = [$needles];
+
+        $filters = explode(self::ANDFILTERS_DELIMETER, $filters);
+        $extracted = [];
+
+        foreach ($filters as $filter) {
+            $name_field = explode(':', $filter)[0];
+            $name = explode('.', $name_field)[0];
+
+            if(!in_array($name, $needles)) {
+                $extracted []= $filter;
+            }
+        }
+
+        return $extracted;
     }
 
     /**

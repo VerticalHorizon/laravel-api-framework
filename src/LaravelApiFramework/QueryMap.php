@@ -33,6 +33,9 @@ class QueryMap
     protected $filters;
     protected $orders;
 
+    protected $available_relations;
+    protected $available_scopes;
+
     public function __construct()
     {
         $this->operators = [
@@ -58,6 +61,13 @@ class QueryMap
     public function setModelClass($modelClass)
     {
         $this->modelClass = $modelClass;
+
+        $this->available_relations = (new ReflectionModel())->getSupportedRelations($this->modelClass);
+
+        if(property_exists($this->modelClass, 'scopes')) {
+            $this->available_scopes = $this->modelClass::$scopes;
+        }
+
         $this->setQuery( (new $this->modelClass())->query());
 
         return $this;
@@ -89,12 +99,12 @@ class QueryMap
     {
         if($fields)
         {
-            $fields = self::parseFields($fields);
+            $fields = self::explodeFields($fields);
 
             // leave only specified relations.
             // some of them can have child relations. so we compare them as `starts-with`
-            $relations = $this->extractRelations($fields);
-            $columns = array_diff($fields, $relations);
+            $relations = self::extractFrom($fields, $this->available_relations);
+            $columns = self::subtractFrom($fields, array_merge($this->available_relations, $this->available_scopes));
 
             if(!empty($columns)) {
                 // do not forget `id`
@@ -183,6 +193,10 @@ class QueryMap
     public function callScopes($entity, $fields, $filters)
     {
         $appends = [];
+        $fields = self::explodeFields($fields);
+        $fields_scopes = self::extractFrom($fields, $this->available_scopes);
+        $filters_scopes = self::extractFrom($filters, $this->available_scopes);
+dd($fields_scopes);
 
         // append by fields if the same not present in filters
 //        foreach ($fields as $rs) {
@@ -219,12 +233,47 @@ class QueryMap
      * @param string $fields_string
      * @return array
      */
-    public static function parseFields($fields_string)
+    public static function explodeFields($fields_string)
     {
         return explode(self::FIELDS_DELIMETER, $fields_string);
-
     }
 
+    /**
+     * @param string $filters_string
+     * @return array
+     */
+    public static function explodeFilters($filters_string)
+    {
+        return explode(self::ANDFILTERS_DELIMETER, $filters_string);
+    }
+
+    /**
+     * @param mixed $needles
+     * @param array $fields
+     * @return array
+     */
+    public static function extractFrom($fields, $needles)
+    {
+        if(!is_array($needles)) $needles = [$needles];
+
+        return array_filter($fields, function($field) use ($needles) {
+            return in_array(explode('.', $field)[0], $needles);
+        });
+    }
+
+    /**
+     * @param mixed $needles
+     * @param array $fields
+     * @return array
+     */
+    public static function subtractFrom($fields, $needles)
+    {
+        if(!is_array($needles)) $needles = [$needles];
+
+        return array_filter($fields, function($field) use ($needles) {
+            return !in_array(explode('.', $field)[0], $needles);
+        });
+    }
 
     /**
      * @param mixed $needles
@@ -297,7 +346,8 @@ class QueryMap
      */
     protected function createConditionsMap($filters)
     {
-        $filters = explode(self::ANDFILTERS_DELIMETER, $filters);
+        $filters = self::explodeFilters($filters);
+        $filters = self::subtractFrom($filters, $this->available_scopes);
         sort($filters);
 
         $conditions = [];
@@ -330,19 +380,6 @@ class QueryMap
         }
 
         return $query;
-    }
-
-    /**
-     * @param $fields
-     * @return array
-     */
-    private function extractRelations($fields)
-    {
-        $valid_relations = (new ReflectionModel())->getSupportedRelations($this->modelClass);
-
-        return array_filter($fields, function($field) use ($valid_relations) {
-            return in_array(explode('.', $field)[0], $valid_relations);
-        });
     }
 
 }

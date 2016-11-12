@@ -96,7 +96,15 @@ class ReflectionModel
             {
                 // except definitions of the relations
                 if(!in_array($method->getName(), array_keys(self::$RELATIONS))) {
-                    $relations[] = $method->getName();
+                    $relations[$method->getName()] = null;
+
+                    // check for pivot columns
+                    preg_match_all('#@pivotColumns (.*?)\n#s', $doc, $pivotColumnsString);
+                    if(count($pivotColumnsString[1])) {
+                        // remove spaces and split columns by commas
+                        $pivotColumns = explode(',', preg_replace('/\s+/', '', $pivotColumnsString[1][0]));
+                        $relations[$method->getName()] = $pivotColumns;
+                    }
                 }
             }
         }

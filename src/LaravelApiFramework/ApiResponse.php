@@ -49,7 +49,7 @@ class ApiResponse
             'pagesize'  => $page_size,
             'page'      => $page,
             'last_page' => ceil($total/$page_size),
-            'results'   => $query->skip(($page-1)*$page_size)->take($page_size)->get(),
+            'results'   => $query->skip(($page-1)*$page_size)->take($page_size)->get()->toArray(),
         ];
     }
 }

@@ -84,7 +84,7 @@ class ApiController extends Controller
                 ->handleRelationsFilters(request()->input('filter'))
             ;
 
-            return QueryMap::getQuery()->where('id', '=', $id)->firstOrFail();
+            return QueryMap::getQuery()->where('id', '=', $id)->firstOrFail()->toArray();
         }
         catch (ModelNotFoundException $e)
         {

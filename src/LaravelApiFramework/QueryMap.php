@@ -7,7 +7,6 @@ use Karellens\LAF\ReflectionModel;
 class QueryMap
 {
     const FIELDS_DELIMETER = ',';
-//    const ORFILTERS_DELIMETER = ';';
     const ANDFILTERS_DELIMETER = ';';
 
     const COMPARATORS = [
@@ -25,6 +24,7 @@ class QueryMap
     ];
 
     private $operators;
+    private $pivot_operators;
 
     protected $query;
     protected $modelClass;
@@ -33,7 +33,7 @@ class QueryMap
     protected $filters;
     protected $orders;
 
-    protected $available_relations;
+    protected $available_relations_with_pivot_columns;
     protected $available_scopes;
 
     public function __construct()
@@ -52,6 +52,17 @@ class QueryMap
             'like'        => function($query, $field, $values){ return $query->where($field, 'like', '%'.$values[0].'%'); },
             'notlike'     => function($query, $field, $values){ return $query->where($field, 'not like', '%'.$values[0].'%'); },
         ];
+
+        $this->pivot_operators = [
+            'not'         => function($query, $field, $values){ return $query->wherePivot($field, '<>', $values[0]); },
+            'gt'          => function($query, $field, $values){ return $query->wherePivot($field, '>', $values[0]); },
+            'gte'         => function($query, $field, $values){ return $query->wherePivot($field, '>=', $values[0]); },
+            'lt'          => function($query, $field, $values){ return $query->wherePivot($field, '<', $values[0]); },
+            'lte'         => function($query, $field, $values){ return $query->wherePivot($field, '<=', $values[0]); },
+            'eq'          => function($query, $field, $values){ return $query->wherePivot($field, '=', $values[0]); },
+            'in'          => function($query, $field, $values){ return $query->wherePivotIn($field, $values); },
+            'notin'       => function($query, $field, $values){ return $query->wherePivotIn($field, $values, 'and', true); },
+        ];
     }
 
     /**
@@ -62,7 +73,7 @@ class QueryMap
     {
         $this->modelClass = $modelClass;
 
-        $this->available_relations = (new ReflectionModel())->getSupportedRelations($this->modelClass);
+        $this->available_relations_with_pivot_columns = (new ReflectionModel())->getSupportedRelations($this->modelClass);
 
         if(property_exists($this->modelClass, 'scopes')) {
             $this->available_scopes = $this->modelClass::$scopes;
@@ -93,6 +104,25 @@ class QueryMap
     }
 
     /**
+     * @return mixed
+     */
+    public function getAvailableRelations()
+    {
+        return array_keys($this->available_relations_with_pivot_columns);
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getPivotColumns($relation_name)
+    {
+        return isset($this->available_relations_with_pivot_columns[$relation_name]) ?
+            $this->available_relations_with_pivot_columns[$relation_name] :
+            []
+            ;
+    }
+
+    /**
      * @return $this
      */
     public function handleFields($fields)
@@ -103,8 +133,8 @@ class QueryMap
 
             // leave only specified relations.
             // some of them can have child relations. so we compare them as `starts-with`
-            $relations = self::extractFrom($fields, $this->available_relations);
-            $columns = self::subtractFrom($fields, array_merge($this->available_relations, $this->available_scopes));
+            $relations = self::extractFrom($fields, $this->getAvailableRelations());
+            $columns = self::subtractFrom($fields, array_merge($this->getAvailableRelations(), (array)$this->available_scopes));
 
             if(!empty($columns)) {
                 // do not forget `id`
@@ -149,6 +179,8 @@ class QueryMap
     }
 
     /**
+     * Filter just relations
+     *
      * @return $this
      */
     public function handleRelationsFilters($filters)
@@ -162,8 +194,9 @@ class QueryMap
             {
                 if($subject !== '.')
                 {
-                    $with_map[$subject] = function($query) use ($subject_conditions) {
-                        return $this->applyRulesToQuery($query, $subject_conditions);
+                    // $subject needed for filtering by pivot columns
+                    $with_map[$subject] = function($query) use ($subject_conditions, $subject) {
+                        return $this->applyRulesToQuery($query, $subject_conditions, $subject);
                     };
                 }
             }
@@ -210,7 +243,7 @@ dd($fields_scopes);
 
             $scoped = call_user_func([$entity, $name]);
 
-            $same_from_field = self::extractFromFields(implode(',', $fields), $name);
+            $same_from_field = self::extractFrom($fields, $name);
 
             $same_with_rels = array_map(function($e){
                 $scope_rel = explode('.', $e);
@@ -255,9 +288,10 @@ dd($fields_scopes);
     public static function extractFrom($fields, $needles)
     {
         if(!is_array($needles)) $needles = [$needles];
+        if(!is_array($fields)) $fields = [$fields];
 
         return array_filter($fields, function($field) use ($needles) {
-            return in_array(explode('.', $field)[0], $needles);
+            return in_array(preg_split( "/[.|:]/", $field)[0], $needles);
         });
     }
 
@@ -269,74 +303,10 @@ dd($fields_scopes);
     public static function subtractFrom($fields, $needles)
     {
         if(!is_array($needles)) $needles = [$needles];
+        if(!is_array($fields)) $fields = [$fields];
 
         return array_filter($fields, function($field) use ($needles) {
-            return !in_array(explode('.', $field)[0], $needles);
-        });
-    }
-
-    /**
-     * @param mixed $needles
-     * @param string $fields_string
-     * @return array
-     */
-    public static function extractFromFields($fields_string, $needles)
-    {
-        if(!is_array($needles)) $needles = [$needles];
-
-        $fields = explode(self::FIELDS_DELIMETER, $fields_string);
-
-        return array_filter($fields, function($field) use ($needles) {
-            return in_array(explode('.', $field)[0], $needles);
-        });
-    }
-
-
-    /**
-     * @param string $fields_string
-     * @param mixed $needles
-     * @return array
-     */
-    public static function subtractFromFields($fields_string, $needles)
-    {
-        if(!is_array($needles)) $needles = [$needles];
-
-        $fields = explode(self::FIELDS_DELIMETER, $fields_string);
-
-        return array_filter($fields, function($field) use ($needles) {
-            return !in_array(explode('.', $field)[0], $needles);
-        });
-    }
-
-    /**
-     * @param string $filters_string
-     * @param mixed $needles
-     * @return array
-     */
-    public static function extractFromFilters($filters_string, $needles)
-    {
-        if(!is_array($needles)) $needles = [$needles];
-
-        $filters = explode(self::ANDFILTERS_DELIMETER, $filters_string);
-
-        return array_filter($filters, function($filter) use ($needles) {
-            return in_array(explode('.', $filter)[0], $needles);
-        });
-    }
-
-    /**
-     * @param string $filters_string
-     * @param mixed $needles
-     * @return array
-     */
-    public static function subtractFromFilters($filters_string, $needles)
-    {
-        if(!is_array($needles)) $needles = [$needles];
-
-        $filters = explode(self::ANDFILTERS_DELIMETER, $filters_string);
-
-        return array_filter($filters, function($filter) use ($needles) {
-            return !in_array(explode('.', $filter)[0], $needles);
+            return !in_array(preg_split( "/[.|:]/", $field)[0], $needles);
         });
     }
 
@@ -348,35 +318,48 @@ dd($fields_scopes);
     {
         $filters = self::explodeFilters($filters);
         $filters = self::subtractFrom($filters, $this->available_scopes);
-        sort($filters);
+
+        $filters_by_relations = self::extractFrom($filters, $this->getAvailableRelations());
+        $filters_own = self::subtractFrom($filters, $this->getAvailableRelations());
+        sort($filters_by_relations);
 
         $conditions = [];
 
-        foreach ($filters as $filter)
-        {
-            $with_relation = explode('.', $filter, 2);    // allow only nested level 1
+        foreach ($filters_own as $fo) {
+            $conditions['.'][] = $fo;
+        }
 
-            if(count($with_relation) > 1)
-            {
+        foreach ($filters_by_relations as $fbr)
+        {
+            $with_relation = explode('.', $fbr, 2);    // allow only nested level 1
+
+            // filter by ID if "id" keyword not porvided
+            if(count($with_relation) > 1) {
                 list($relation, $relation_filter) = $with_relation;
-                $conditions[$relation][] = $relation_filter;
             }
-            else
-            {
-                $conditions['.'][] = $filter;
+            else {
+                $with_relation = explode(':', $fbr, 2);
+                list($relation, $relation_filter) = $with_relation;
+                $relation_filter = 'id:'.$relation_filter;
             }
+
+            $conditions[$relation][] = $relation_filter;
         }
 
         return $conditions;
     }
 
-    protected function applyRulesToQuery($query, $subject_conditions)
+    protected function applyRulesToQuery($query, $subject_conditions, $subject = null)
     {
         foreach ($subject_conditions as $subject_condition) {
             list($field, $operand, $value) = explode(':', $subject_condition);
             $values = explode(',', $value);
+            // if column belongs to pivot table
+            $pivot = $subject ? self::extractFrom($subject_condition, $this->getPivotColumns($subject)) : [];
 
-            $query = $this->operators[$operand]($query, $field, $values);
+            $query = count($pivot) ?
+                $this->pivot_operators[$operand]($query, $field, $values) :
+                $this->operators[$operand]($query, $field, $values);
         }
 
         return $query;

@@ -39,7 +39,7 @@ class ReflectionModel
     {
         if($alias)
         {
-            $this->modelName = ucfirst(str_singular($alias));
+            $this->modelName = str_singular(studly_case($alias));
         }
     }
 

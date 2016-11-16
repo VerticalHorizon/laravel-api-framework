@@ -134,15 +134,8 @@ class QueryMap
             // leave only specified relations.
             // some of them can have child relations. so we compare them as `starts-with`
             $relations = self::extractFrom($fields, $this->getAvailableRelations());
-            $columns = self::subtractFrom($fields, array_merge($this->getAvailableRelations(), (array)$this->available_scopes));
 
-            if(!empty($columns)) {
-                // do not forget `id`
-                array_unshift($columns, 'id');
-
-                $this->query->select($columns);
-            }
-            elseif(!empty($relations)) {
+            if(!empty($relations)) {
                 $this->query->with($relations);
             }
         }

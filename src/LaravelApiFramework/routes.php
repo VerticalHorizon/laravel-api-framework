@@ -28,13 +28,12 @@ Route::group([
                     continue;
                 }
 
-                // return CustomController or false
-                $custom_controller = Rules::getCustomController($version.'.'.$entity.'.'.$action);
+                // assign Custom Controller or Default Controller
+                if(!$controller = Rules::getCustomController($version.'.'.$entity.'.'.$action)) {
+                    $controller = '\Karellens\LAF\Http\Controllers\ApiController';
+                }
 
-                $default_controller = function (Request $request, $id = null) use ($entity, $action)  {
-                    return (new \Karellens\LAF\Http\Controllers\ApiController($request, $entity))->{$action}($request, $id);
-                };
-
+                // set route name
                 $route_attributes = [
                     'as'    => $version.'.'.$entity.'.'.$action,          // '.users.index' if no version
                 ];
@@ -44,12 +43,7 @@ Route::group([
                     $route_attributes['middleware'] = $rules['middleware'];
                 }
 
-                if($custom_controller) {
-                    $route_attributes['uses'] = $custom_controller.'@'.$action;
-                }
-                else {
-                    array_push($route_attributes, $default_controller);
-                }
+                $route_attributes['uses'] = $controller.'@'.$action;
 
                 $router->match(
                     $rules['method'],

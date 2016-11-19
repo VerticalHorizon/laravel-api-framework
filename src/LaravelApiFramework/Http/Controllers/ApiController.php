@@ -5,7 +5,7 @@ namespace Karellens\LAF\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Routing\Route;
+use Illuminate\Support\Facades\Route;
 use Karellens\LAF\Facades\ApiResponse;
 use Karellens\LAF\Facades\QueryMap;
 use Karellens\LAF\ReflectionModel;
@@ -23,12 +23,15 @@ class ApiController extends Controller
      *
      * @param  \Illuminate\Http\Request  $request
      */
-    public function __construct(Request $request, $entity = '',  $id = null)
+    public function __construct(Request $request)
     {
-//        $this->version = $version;
-        $this->alias = $entity;
+        $route_name = Route::currentRouteName();
 
-        $this->modelClass = (new ReflectionModel($this->alias))->getClass();
+        if($route_name) {
+            list($this->version, $this->alias, $action) = explode('.', $route_name);
+
+            $this->modelClass = (new ReflectionModel($this->alias))->getClass();
+        }
     }
 
     protected function getPageSize()

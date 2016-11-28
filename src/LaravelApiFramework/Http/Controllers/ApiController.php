@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Route;
 use Karellens\LAF\Facades\ApiResponse;
 use Karellens\LAF\Facades\QueryMap;
-use Karellens\LAF\ReflectionModel;
+use Karellens\LAF\Facades\ReflectionModel;
 
 class ApiController extends Controller
 {
@@ -30,7 +30,7 @@ class ApiController extends Controller
         if($route_name) {
             list($this->version, $this->alias, $action) = explode('.', $route_name);
 
-            $this->modelClass = (new ReflectionModel($this->alias))->getClass();
+            $this->modelClass = ReflectionModel::getClassByAlias($this->alias);
         }
     }
 
@@ -65,7 +65,7 @@ class ApiController extends Controller
      */
     public function store(Request $request)
     {
-        $object = new $this->modelClass($request->all());
+        $object = new $this->modelClass($request->json()->all());
         $object->save();
 
         return ApiResponse::message(200, 'Resource #'.$object->id.' created!');
@@ -113,7 +113,7 @@ class ApiController extends Controller
             return ApiResponse::message(404, $e->getMessage());
         }
 
-        $object->fill($request->all());
+        $object->fill($request->json()->all());
         $object->save();
 
         return ApiResponse::message(200, 'Resource #'.$id.' updated!');

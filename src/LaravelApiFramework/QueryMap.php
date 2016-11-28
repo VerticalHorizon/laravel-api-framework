@@ -2,7 +2,7 @@
 
 namespace Karellens\LAF;
 
-use Karellens\LAF\ReflectionModel;
+use Karellens\LAF\Facades\ReflectionModel;
 
 class QueryMap
 {
@@ -73,11 +73,7 @@ class QueryMap
     {
         $this->modelClass = $modelClass;
 
-        $this->available_relations_with_pivot_columns = (new ReflectionModel())->getSupportedRelations($this->modelClass);
-
-        if(property_exists($this->modelClass, 'scopes')) {
-            $this->available_scopes = $this->modelClass::$scopes;
-        }
+        $this->available_relations_with_pivot_columns = ReflectionModel::getSupportedRelations($this->modelClass);
 
         $this->setQuery( (new $this->modelClass())->query());
 
@@ -310,7 +306,6 @@ dd($fields_scopes);
     protected function createConditionsMap($filters)
     {
         $filters = self::explodeFilters($filters);
-        $filters = self::subtractFrom($filters, $this->available_scopes);
 
         $filters_by_relations = self::extractFrom($filters, $this->getAvailableRelations());
         $filters_own = self::subtractFrom($filters, $this->getAvailableRelations());

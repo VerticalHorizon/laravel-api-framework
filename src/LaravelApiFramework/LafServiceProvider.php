@@ -35,6 +35,5 @@ class LafServiceProvider extends ServiceProvider
         $this->app->singleton('Karellens\LAF\ApiResponse', function ($app) {
             return new \Karellens\LAF\ApiResponse;
         });
-//        $this->app->make('Karellens\LAF\Http\Controllers\ApiController');
     }
 }

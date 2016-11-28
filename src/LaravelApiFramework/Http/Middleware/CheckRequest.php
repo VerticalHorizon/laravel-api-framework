@@ -21,7 +21,11 @@ class CheckRequest
             return (new ApiResponse())->message(406, 'Not Acceptable! No data received.');
         }
 
-        if(($request->isMethod('post') || $request->isMethod('put')) && !$request->isJson())
+        if(
+            ($request->isMethod('post') || $request->isMethod('put'))
+            &&
+            !($request->isJson() || count($request->allFiles()))
+        )
         {
             return (new ApiResponse())->message(400, 'Bad request! No data received.');
         }

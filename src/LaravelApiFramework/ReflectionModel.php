@@ -1,6 +1,7 @@
 <?php
 
 namespace Karellens\LAF;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Helper for Eloquent Model reverse engineering
@@ -35,25 +36,22 @@ class ReflectionModel
 
     protected $modelName;
 
-    public function __construct($alias = null)
-    {
-        if($alias)
-        {
-            $this->modelName = str_singular(studly_case($alias));
-        }
-    }
+    protected $modelClass;
+
+    protected $relations;
 
     /**
      * @return string Class
      */
-    public function getClass()
+    public function getClassByAlias($alias)
     {
         $modelClass = null;
+        $modelName = str_singular(studly_case($alias));
 
         foreach (config('api.models_namespaces') as $ns) {
-            if(class_exists($ns.$this->modelName))
+            if(class_exists($ns.$modelName))
             {
-                $modelClass = $ns.$this->modelName;
+                $modelClass = $ns.$modelName;
                 break;
             }
         }
@@ -74,8 +72,6 @@ class ReflectionModel
      */
     public function getTable($modelClass = null)
     {
-        $modelClass = $modelClass ? $modelClass : $this->getClass();
-
         return with(new $modelClass)->getTable();
     }
 
@@ -85,7 +81,12 @@ class ReflectionModel
     public function getSupportedRelations($modelClass = null)
     {
         $relations = [];
-        $modelClass = $modelClass ? $modelClass : $this->getClass();
+
+        if(Cache::has($modelClass.'_relations')) {
+            $relations = Cache::get($modelClass.'_relations');
+            return $relations;
+        }
+
         $rc = new \ReflectionClass($modelClass);
 
         foreach($rc->getMethods() as $method)
@@ -109,6 +110,7 @@ class ReflectionModel
             }
         }
 
+        Cache::put($modelClass.'_relations', $relations);
         return $relations;
     }
 

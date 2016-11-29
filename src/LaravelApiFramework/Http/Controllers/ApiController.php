@@ -54,7 +54,7 @@ class ApiController extends Controller
             ->handleOrders(request()->input('order'))
         ;
 
-        return ApiResponse::paginate(QueryMap::getQuery());
+        return QueryMap::getQuery()->paginate( $this->getPageSize() )->toArray();
     }
 
     /**

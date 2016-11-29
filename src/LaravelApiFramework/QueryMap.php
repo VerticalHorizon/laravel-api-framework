@@ -2,7 +2,7 @@
 
 namespace Karellens\LAF;
 
-use Karellens\LAF\Facades\ReflectionModel;
+use Karellens\LAF\Facades\ReflectionModel as RM;
 
 class QueryMap
 {
@@ -73,7 +73,7 @@ class QueryMap
     {
         $this->modelClass = $modelClass;
 
-        $this->available_relations_with_pivot_columns = ReflectionModel::getSupportedRelations($this->modelClass);
+        $this->available_relations_with_pivot_columns = RM::getSupportedRelations($this->modelClass);
 
         $this->setQuery( (new $this->modelClass())->query());
 
@@ -135,7 +135,6 @@ class QueryMap
                 $this->query->with($relations);
             }
         }
-
 
         return $this;
     }
@@ -201,8 +200,16 @@ class QueryMap
     /**
      * @return $this
      */
-    public function handleOrders()
+    public function handleOrders($orders)
     {
+        $orders = self::explodeFilters($orders);
+
+        foreach ($orders as $order) {
+            list($field, $direction) = explode(':', $order);
+
+            $this->query->orderBy($field, $direction);
+        }
+
         return $this;
     }
 

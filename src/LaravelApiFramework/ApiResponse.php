@@ -32,24 +32,4 @@ class ApiResponse
         )
             ->withHeaders($this->headers);
     }
-
-    /**
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @return mixed
-     */
-    public function paginate($query)
-    {
-        $page = (int)request()->input('page', 1);
-        $page_size = (int)request()->input('pagesize', config('api.default_pagesize'));
-        $total = $query->count();
-
-        return [
-            'total'     => $total,
-            'pagesize'  => $page_size,
-            'page'      => $page,
-            'last_page' => ceil($total/$page_size),
-            'results'   => $query->skip(($page-1)*$page_size)->take($page_size)->get()->toArray(),
-        ];
-    }
 }

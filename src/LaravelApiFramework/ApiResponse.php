@@ -24,10 +24,24 @@ class ApiResponse
      * @param string $message
      * @return mixed
      */
-    public function message($code, $message)
+    public function error($message, $code = 500)
     {
         return response(
             ['error' => ['code' => $code, 'message' => $message]],
+            (int) $code
+        )
+            ->withHeaders($this->headers);
+    }
+
+    /**
+     * @param int $code
+     * @param string $message
+     * @return mixed
+     */
+    public function success($message, $code = 200)
+    {
+        return response(
+            ['success' => ['code' => $code, 'message' => $message]],
             (int) $code
         )
             ->withHeaders($this->headers);

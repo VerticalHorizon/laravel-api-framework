@@ -65,10 +65,75 @@ class ApiController extends Controller
      */
     public function store(Request $request)
     {
-        $object = new $this->modelClass($request->json()->all());
+        $object = new $this->modelClass();
+
+        $qm = QueryMap
+            ::setModelClass($this->modelClass);
+
+        // get own fields
+        $fields = $request->only(
+            QueryMap::extractFields(
+                array_keys($request->json()->all())
+            )
+        );
+
+        $object->fill($fields);
+
+        // get relations
+        $relations = $request->only(
+            QueryMap::extractRelations(
+                array_keys($request->json()->all())
+            )
+        );
+
+        // first apply BelongsTo relations. before saving main entity
+        if(count($relations)) {
+            foreach ($relations as $name => $values) {
+                $relation_class = get_class($object->{$name}());
+                $foreignModel = ReflectionModel::getForeignModel($this->modelClass, $name);
+
+                if($relation_class == 'Illuminate\Database\Eloquent\Relations\BelongsTo') {
+
+                    // SiteString hack
+                    if('SiteString' == $foreignModel) {
+
+                        $foreignModel = ReflectionModel::getClassByAlias($foreignModel);
+
+                        $newForeignModel = new $foreignModel();
+                        $newForeignModel->fill(['text' => $values]);
+                        $newForeignModel->save();
+
+                        $object->{$name}()->associate($newForeignModel);
+                    }
+                    else {
+                        // other belongsTo
+                        $object->{$name}()->associate((int) $values);
+                    }
+
+                }
+            }
+        }
+
         $object->save();
 
-        return ApiResponse::message(200, 'Resource #'.$object->id.' created!');
+        // belongsToMany
+        if(count($relations)) {
+            foreach ($relations as $name => $values) {
+
+                $relation_class = get_class($object->{$name}());
+
+                if($relation_class == 'Illuminate\Database\Eloquent\Relations\BelongsToMany') {
+                    $ids = array_column($values, 'id');
+                    $this->delete_column($values, 'id');
+                    $values = array_combine($ids, $values);
+
+                    $object->{$name}()->sync($values);
+                }
+
+            }
+        }
+
+        return ApiResponse::success('Resource #'.$object->id.' created!', 200);
     }
 
     /**
@@ -91,7 +156,7 @@ class ApiController extends Controller
         }
         catch (ModelNotFoundException $e)
         {
-            return ApiResponse::message(404, $e->getMessage());
+            return ApiResponse::error($e->getMessage(), 404);
         }
     }
 
@@ -104,19 +169,78 @@ class ApiController extends Controller
      */
     public function update(Request $request, $id)
     {
+
+        $qm = QueryMap
+            ::setModelClass($this->modelClass);
+
+        // get own fields
+        $fields = $request->only(
+            QueryMap::extractFields(
+                array_keys($request->json()->all())
+            )
+        );
+
+        // get relations
+        $relations = $request->only(
+            QueryMap::extractRelations(
+                array_keys($request->json()->all())
+            )
+        );
+
         try
         {
-            $object = call_user_func([$this->modelClass, 'findOrFail'], $id);
+            $object = with(new $this->modelClass())
+                ->with(array_keys($relations))
+                ->findOrFail((int) $id);
         }
         catch (ModelNotFoundException $e)
         {
-            return ApiResponse::message(404, $e->getMessage());
+            return ApiResponse::error($e->getMessage(), 404);
         }
 
-        $object->fill($request->json()->all());
+        $object->fill($fields);
+
+        // first apply BelongsTo relations. before saving main entity
+        if(count($relations)) {
+            foreach ($relations as $name => $values) {
+                $relation_class = get_class($object->{$name}());
+                $foreignModel = ReflectionModel::getForeignModel($this->modelClass, $name);
+
+                if($relation_class == 'Illuminate\Database\Eloquent\Relations\BelongsTo') {
+
+                    // SiteString hack
+                    if('SiteString' == $foreignModel) {
+                        $object->{$name}->fill(['text' => $values])->save();
+                    }
+                    else {
+                        // other belongsTo
+                        $object->{$name}()->associate((int) $values);
+                    }
+
+                }
+            }
+        }
+
         $object->save();
 
-        return ApiResponse::message(200, 'Resource #'.$id.' updated!');
+        // belongsToMany
+        if(count($relations)) {
+            foreach ($relations as $name => $values) {
+
+                $relation_class = get_class($object->{$name}());
+
+                if($relation_class == 'Illuminate\Database\Eloquent\Relations\BelongsToMany') {
+                    $ids = array_column($values, 'id');
+                    $this->delete_column($values, 'id');
+                    $values = array_combine($ids, $values);
+
+                    $object->{$name}()->sync($values);
+                }
+
+            }
+        }
+
+        return ApiResponse::success('Resource #'.$id.' updated!', 200);
     }
 
     /**
@@ -134,9 +258,15 @@ class ApiController extends Controller
         }
         catch (ModelNotFoundException $e)
         {
-            return ApiResponse::message(404, $e->getMessage());
+            return ApiResponse::error($e->getMessage(), 404);
         }
 
-        return ApiResponse::message(200, 'Resource #'.$id.' deleted!');
+        return ApiResponse::success('Resource #'.$id.' deleted!', 200);
+    }
+
+    private function delete_column(&$array, $key) {
+        return array_walk($array, function (&$v) use ($key) {
+            unset($v[$key]);
+        });
     }
 }

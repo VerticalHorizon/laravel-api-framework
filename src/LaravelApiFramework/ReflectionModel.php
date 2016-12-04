@@ -13,25 +13,25 @@ class ReflectionModel
 {
     private static $RELATIONS = [
         // Define a one-to-one relationship.
-        'hasOne'            => '\Illuminate\Database\Eloquent\Relations\HasOne',
+        'Illuminate\Database\Eloquent\Relations\HasOne',
         // Define a polymorphic one-to-one relationship.
-        'morphOne'          => '\Illuminate\Database\Eloquent\Relations\MorphOne',
+        'Illuminate\Database\Eloquent\Relations\MorphOne',
         // Define an inverse one-to-one or many relationship.
-        'belongsTo'         => '\Illuminate\Database\Eloquent\Relations\BelongsTo',
+        'Illuminate\Database\Eloquent\Relations\BelongsTo',
         // Define a polymorphic, inverse one-to-one or many relationship.
-        'morphTo'           => '\Illuminate\Database\Eloquent\Relations\MorphTo',
+        'Illuminate\Database\Eloquent\Relations\MorphTo',
         // Define a one-to-many relationship.
-        'hasMany'           => '\Illuminate\Database\Eloquent\Relations\HasMany',
+        'Illuminate\Database\Eloquent\Relations\HasMany',
         // Define a has-many-through relationship.
-        'hasManyThrough'    => '\Illuminate\Database\Eloquent\Relations\HasManyThrough',
+        'Illuminate\Database\Eloquent\Relations\HasManyThrough',
         // Define a polymorphic one-to-many relationship.
-        'morphMany'         => '\Illuminate\Database\Eloquent\Relations\MorphMany',
+        'Illuminate\Database\Eloquent\Relations\MorphMany',
         // Define a many-to-many relationship.
-        'belongsToMany'     => '\Illuminate\Database\Eloquent\Relations\BelongsToMany',
+        'Illuminate\Database\Eloquent\Relations\BelongsToMany',
         // Define a polymorphic many-to-many relationship.
-        'morphToMany'       => '\Illuminate\Database\Eloquent\Relations\MorphToMany',
+        'Illuminate\Database\Eloquent\Relations\MorphToMany',
         // Define a polymorphic, inverse many-to-many relationship.
-        'morphedByMany'     => '\Illuminate\Database\Eloquent\Relations\MorphToMany',
+        'Illuminate\Database\Eloquent\Relations\MorphToMany',
     ];
 
     protected $modelName;
@@ -40,28 +40,29 @@ class ReflectionModel
 
     protected $relations;
 
+    protected $defaultRelationsClasses;
+
     /**
+     * @param string $alias
      * @return string Class
      */
     public function getClassByAlias($alias)
     {
-        $modelClass = null;
         $modelName = str_singular(studly_case($alias));
 
         foreach (config('api.models_namespaces') as $ns) {
             if(class_exists($ns.$modelName))
             {
-                $modelClass = $ns.$modelName;
-                break;
+                return $ns.$modelName;
             }
         }
 
-        if(!$modelClass)
-        {
-            // throw 404
+        if(class_exists($modelName)) {
+            return $modelName;
         }
 
-        return $modelClass;
+        // throw 404
+        return false;
     }
 
     /**
@@ -78,7 +79,7 @@ class ReflectionModel
     /**
      * @return array
      */
-    public function getSupportedRelations($modelClass = null)
+    public function getRelations($modelClass = null)
     {
         $relations = [];
 
@@ -93,18 +94,28 @@ class ReflectionModel
         {
             $doc = $method->getDocComment();
 
-            if($doc && self::strposa($doc, self::$RELATIONS) !== false)
+            // if doc contains one of relations
+            if($doc && strposa($doc, self::$RELATIONS) !== false)
             {
-                // except definitions of the relations
-                if(!in_array($method->getName(), array_keys(self::$RELATIONS))) {
+                // check only current class methods without parent relations
+                if($method->class == ltrim($modelClass, '\\')) {
                     $relations[$method->getName()] = null;
 
                     // check for pivot columns
-                    preg_match_all('#@pivotColumns (.*?)\n#s', $doc, $pivotColumnsString);
+                    preg_match_all('#@pivotColumns\s+(.*?)\n#s', $doc, $pivotColumnsString);
+                    preg_match_all('#@foreignModel\s+(.*?)\n#s', $doc, $foreignModel);
+                    preg_match_all('#@return\s+(.*?)\n#s', $doc, $return);
+
+                    $relations[$method->getName()]['return'] = ltrim($return[1][0], '\\');
+
+                    if(count($foreignModel[1])) {
+                        $relations[$method->getName()]['foreignModel'] = $foreignModel[1][0];
+                    }
+
                     if(count($pivotColumnsString[1])) {
                         // remove spaces and split columns by commas
                         $pivotColumns = explode(',', preg_replace('/\s+/', '', $pivotColumnsString[1][0]));
-                        $relations[$method->getName()] = $pivotColumns;
+                        $relations[$method->getName()]['pivotColumns'] = $pivotColumns;
                     }
                 }
             }
@@ -114,11 +125,83 @@ class ReflectionModel
         return $relations;
     }
 
-    private static function strposa($haystack, $needle, $offset=0) {
-        if(!is_array($needle)) $needle = array($needle);
-        foreach($needle as $query) {
-            if(strpos($haystack, $query, $offset) !== false) return true; // stop on first true result
-        }
-        return false;
+    /**
+     * get relations names
+     *
+     * @return mixed
+     */
+    public function getRelationsNames($modelClass = null)
+    {
+        $relationsMap = $this->getRelations($modelClass);
+
+        return array_keys($relationsMap);
     }
+
+    /**
+     * return pivot columns of the certain relation if provided
+     * or all relations having pivot tables with there pivot columns
+     *
+     * @param string $modelClass
+     * @param string $relationName
+     * @return mixed
+     */
+    public function getPivotColumns($modelClass, $relationName = null)
+    {
+        $relationsMap = $this->getRelations($modelClass);
+
+        $result = [];
+        foreach ($relationsMap as $name => $map) {
+            if(isset($map['pivotColumns'])) {
+                $result[$name] = $map['pivotColumns'];
+            }
+        }
+
+        if($relationName && isset($result[$relationName])) {
+            return $result[$relationName];
+        }
+        elseif (!$relationName) {
+            return $result;
+        }
+
+        return  [];
+    }
+
+    /**
+     * return foreign model of certain relation if provided
+     * or all relations with there foreign models
+     *
+     * @param string $modelClass
+     * @param string $relationName
+     * @return mixed
+     */
+    public function getForeignModel($modelClass, $relationName = null)
+    {
+        $relationsMap = $this->getRelations($modelClass);
+
+        $result = [];
+        foreach ($relationsMap as $name => $map) {
+            $result[$name] = isset($map['foreignModel']) ? $map['foreignModel'] : null;
+        }
+
+        if($relationName && isset($result[$relationName])) {
+            return $result[$relationName];
+        }
+        elseif (!$relationName) {
+            return $result;
+        }
+
+        return  [];
+    }
+}
+
+/**
+ * @return bool
+ */
+function strposa($haystack, $needles, $offset=0) {
+    if(!is_array($needles)) $needles = array($needles);
+
+    foreach($needles as $query) {
+        if(strpos($haystack, $query, $offset) !== false) return true; // stop on first true result
+    }
+    return false;
 }

@@ -33,7 +33,9 @@ class QueryMap
     protected $filters;
     protected $orders;
 
-    protected $available_relations_with_pivot_columns;
+    protected $availableRelations;
+    protected $relationsWithPivots;
+
     protected $available_scopes;
 
     public function __construct()
@@ -73,7 +75,8 @@ class QueryMap
     {
         $this->modelClass = $modelClass;
 
-        $this->available_relations_with_pivot_columns = RM::getSupportedRelations($this->modelClass);
+        $this->availableRelations = RM::getRelations($this->modelClass);
+        $this->relationsWithPivots = RM::getPivotColumns($this->modelClass);
 
         $this->setQuery( (new $this->modelClass())->query());
 
@@ -104,7 +107,7 @@ class QueryMap
      */
     public function getAvailableRelations()
     {
-        return array_keys($this->available_relations_with_pivot_columns);
+        return array_keys($this->availableRelations);
     }
 
     /**
@@ -112,8 +115,8 @@ class QueryMap
      */
     public function getPivotColumns($relation_name)
     {
-        return isset($this->available_relations_with_pivot_columns[$relation_name]) ?
-            $this->available_relations_with_pivot_columns[$relation_name] :
+        return isset($this->relationsWithPivots[$relation_name]) ?
+            $this->relationsWithPivots[$relation_name] :
             []
             ;
     }
@@ -264,7 +267,7 @@ dd($fields_scopes);
      */
     public static function explodeFields($fields_string)
     {
-        return explode(self::FIELDS_DELIMETER, $fields_string);
+        return $fields_string ? explode(self::FIELDS_DELIMETER, $fields_string) : [];
     }
 
     /**
@@ -273,7 +276,7 @@ dd($fields_scopes);
      */
     public static function explodeFilters($filters_string)
     {
-        return explode(self::ANDFILTERS_DELIMETER, $filters_string);
+        return $filters_string ? explode(self::ANDFILTERS_DELIMETER, $filters_string) : [];
     }
 
     /**
@@ -304,6 +307,30 @@ dd($fields_scopes);
         return array_filter($fields, function($field) use ($needles) {
             return !in_array(preg_split( "/[.|:]/", $field)[0], $needles);
         });
+    }
+
+
+    /**
+     * Retrieve own model's columns from given array
+     *
+     * @param array $fields
+     * @return array
+     */
+    public function extractFields($fields)
+    {
+        return self::subtractFrom($fields, $this->getAvailableRelations());
+    }
+
+
+    /**
+     * Retrieve model's relations from given array
+     *
+     * @param array $fields
+     * @return array
+     */
+    public function extractRelations($fields)
+    {
+        return self::extractFrom($fields, $this->getAvailableRelations());
     }
 
     /**

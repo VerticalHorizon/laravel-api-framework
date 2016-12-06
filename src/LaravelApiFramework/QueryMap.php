@@ -205,12 +205,14 @@ class QueryMap
      */
     public function handleOrders($orders)
     {
-        $orders = self::explodeFilters($orders);
+        if($orders) {
+            $orders = self::explodeFilters($orders);
 
-        foreach ($orders as $order) {
-            list($field, $direction) = explode(':', $order);
+            foreach ($orders as $order) {
+                list($field, $direction) = explode(':', $order);
 
-            $this->query->orderBy($field, $direction);
+                $this->query->orderBy($field, $direction);
+            }
         }
 
         return $this;

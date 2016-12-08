@@ -18,12 +18,12 @@ return [
              * and add any custom actions from other Controller that can extends ApiController
              * detailed example:
              *
-             * 'descendants_of' => {
+             * 'descendants_of' => [
              *      'controller'    => 'AreaController',
              *      'middleware'    => 'auth:api',
              *      'method'        => 'get',
              *      'postfix'       => 'descendants_of/{id}', // or it generate by action name
-             * },
+             * ],
              */
             'show'      => false,       // blocked action
             'store'     => ['middleware' => 'auth:api'],

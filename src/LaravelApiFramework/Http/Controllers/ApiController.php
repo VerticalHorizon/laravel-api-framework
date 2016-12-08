@@ -133,7 +133,7 @@ class ApiController extends Controller
             }
         }
 
-        return ApiResponse::success('Resource #'.$object->id.' created!', 200);
+        return $object->toArray();
     }
 
     /**
@@ -240,7 +240,7 @@ class ApiController extends Controller
             }
         }
 
-        return ApiResponse::success('Resource #'.$id.' updated!', 200);
+        return $object->toArray();
     }
 
     /**

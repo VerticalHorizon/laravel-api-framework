@@ -15,3 +15,9 @@ And middleware
     'laf' => \Karellens\LAF\Http\Middleware\CheckRequest::class,
 ```
 to `routeMiddleware` array in `app/Http/Kernel.php`.
+
+Start customize controller:
+```bash
+$ cp vendor/karellens/laravel-api-framework/src/LaravelApiFramework/Http/Controllers/ApiController.php app/Http/Controllers/UsersController.php 
+
+```

@@ -18,7 +18,7 @@ class CheckRequest
     {
         if(!$request->accepts(config('api.acceptable_headers')))
         {
-            return (new ApiResponse())->message(406, 'Not Acceptable! No data received.');
+            return (new ApiResponse())->error('Not Acceptable! No data received.', 400);
         }
 
         if(
@@ -27,7 +27,7 @@ class CheckRequest
             !($request->isJson() || count($request->allFiles()))
         )
         {
-            return (new ApiResponse())->message(400, 'Bad request! No data received.');
+            return (new ApiResponse())->error('Bad request! No data received.', 400);
         }
 
         return $next($request);

@@ -133,7 +133,9 @@ class ApiController extends Controller
             }
         }
 
-        return $object->toArray();
+        return with(new $this->modelClass())
+            ->with(array_keys($relations))
+            ->findOrFail((int) $object->id)->toArray();
     }
 
     /**

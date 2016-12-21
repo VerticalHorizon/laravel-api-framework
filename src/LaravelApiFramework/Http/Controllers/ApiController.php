@@ -212,7 +212,18 @@ class ApiController extends Controller
 
                     // SiteString hack
                     if('SiteString' == $foreignModel) {
-                        $object->{$name}->fill(['text' => $values])->save();
+                        if($object->{$name}) {
+                            $object->{$name}->fill(['text' => $values])->save();
+                        } else {
+                            $foreignModel = ReflectionModel::getClassByAlias($foreignModel);
+
+                            $newForeignModel = new $foreignModel();
+                            $newForeignModel->fill(['text' => $values]);
+                            $newForeignModel->save();
+
+                            $object->{$name}()->associate($newForeignModel);
+                        }
+
                     }
                     else {
                         // other belongsTo
@@ -230,8 +241,13 @@ class ApiController extends Controller
             foreach ($relations as $name => $values) {
 
                 $relation_class = get_class($object->{$name}());
+                $foreignModel = ReflectionModel::getForeignModel($this->modelClass, $name);
 
-                if($relation_class == 'Illuminate\Database\Eloquent\Relations\BelongsToMany') {
+                if($relation_class == 'Illuminate\Database\Eloquent\Relations\BelongsToMany' && 'Userfilegroup' == $foreignModel) {
+                    $ids = array_column($values, 'id');
+                    $object->{$name}()->sync($ids);
+                }
+                elseif($relation_class == 'Illuminate\Database\Eloquent\Relations\BelongsToMany') {
                     $ids = array_column($values, 'id');
                     $this->delete_column($values, 'id');
                     $values = array_combine($ids, $values);

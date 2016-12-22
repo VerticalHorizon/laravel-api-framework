@@ -47,11 +47,14 @@ class ApiController extends Controller
      */
     public function index()
     {
+        $order = request()->input('order');
+        $order = $order ==  ':order' ? null : $order;
+
         QueryMap
             ::setModelClass($this->modelClass)
             ->handleFields(request()->input('fields'))
             ->handleFilters(request()->input('filter'))
-            ->handleOrders(request()->input('order'))
+            ->handleOrders($order)
         ;
 
         return QueryMap::getQuery()->paginate( $this->getPageSize() )->toArray();

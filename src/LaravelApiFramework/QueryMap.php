@@ -51,8 +51,8 @@ class QueryMap
             'notin'       => function($query, $field, $values){ return $query->whereNotIn($field, $values); },
             'between'     => function($query, $field, $values){ return $query->whereBetween($field, $values); },
             'notbetween'  => function($query, $field, $values){ return $query->whereNotBetween($field, $values); },
-            'like'        => function($query, $field, $values){ return $query->where($field, 'like', '%'.$values[0].'%'); },
-            'notlike'     => function($query, $field, $values){ return $query->where($field, 'not like', '%'.$values[0].'%'); },
+            'like'        => function($query, $field, $values){ return $query->where($field, 'like', $values[0]); },
+            'notlike'     => function($query, $field, $values){ return $query->where($field, 'not like', $values[0]); },
         ];
 
         $this->pivot_operators = [

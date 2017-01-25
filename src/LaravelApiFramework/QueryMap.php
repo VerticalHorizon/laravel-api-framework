@@ -343,8 +343,9 @@ dd($fields_scopes);
     {
         $filters = self::explodeFilters($filters);
 
-        $filters_by_relations = self::extractFrom($filters, $this->getAvailableRelations());
-        $filters_own = self::subtractFrom($filters, $this->getAvailableRelations());
+        $available_relations = $this->getAvailableRelations();
+        $filters_by_relations = self::extractFrom($filters, $available_relations);
+        $filters_own = self::subtractFrom($filters, $available_relations);
         sort($filters_by_relations);
 
         $conditions = [];
@@ -364,7 +365,18 @@ dd($fields_scopes);
             else {
                 $with_relation = explode(':', $fbr, 2);
                 list($relation, $relation_filter) = $with_relation;
-                $relation_filter = 'id:'.$relation_filter;
+                if(in_array($relation, [
+                    'name',
+                    'original_name',
+                    'text',
+                    'date',
+                    'full_text',
+                    'detail',
+                ])) {
+                    $relation_filter = 'text:'.$relation_filter;
+                } else {
+                    $relation_filter = 'id:'.$relation_filter;
+                }
             }
 
             $conditions[$relation][] = $relation_filter;

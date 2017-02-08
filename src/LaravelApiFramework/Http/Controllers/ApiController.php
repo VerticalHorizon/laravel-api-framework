@@ -45,7 +45,7 @@ class ApiController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function index(Request $request)
     {
         $order = request()->input('order');
         $order = $order ==  ':order' ? null : $order;
@@ -57,7 +57,15 @@ class ApiController extends Controller
             ->handleOrders($order)
         ;
 
-        return QueryMap::getQuery()->paginate( $this->getPageSize() )->toArray();
+        $pagesize = $this->getPageSize();
+
+        if(strpos($request->header('Accept'), 'application/hal+json') !== false)  {
+            return QueryMap::getQuery()->paginate( $pagesize )->toArray();
+        } else {
+            $page = (int)$request->input('page', 1);
+            return QueryMap::getQuery()->skip( ($page-1)*$pagesize )->take( $pagesize )->get()->toArray();
+        }
+
     }
 
     /**

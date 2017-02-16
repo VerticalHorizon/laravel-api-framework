@@ -207,6 +207,7 @@ class QueryMap
     {
         if($orders) {
             $orders = self::explodeFilters($orders);
+            $orders = self::subtractFrom($orders, $this->getAvailableRelations());
 
             foreach ($orders as $order) {
                 list($field, $direction) = explode(':', $order);

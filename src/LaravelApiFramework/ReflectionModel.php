@@ -50,6 +50,15 @@ class ReflectionModel
     {
         $modelName = str_singular(studly_case($alias));
 
+        return $this->getNamespaceClass($modelName);
+    }
+
+    /**
+     * @param string $modelName
+     * @return string Class
+     */
+    public function getNamespaceClass($modelName)
+    {
         foreach (config('api.models_namespaces') as $ns) {
             if(class_exists($ns.$modelName))
             {

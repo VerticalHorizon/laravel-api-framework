@@ -2,6 +2,7 @@
 
 namespace Karellens\LAF;
 
+use Illuminate\Support\Facades\DB;
 use Karellens\LAF\Facades\ReflectionModel as RM;
 
 class QueryMap
@@ -33,8 +34,8 @@ class QueryMap
     protected $filters;
     protected $orders;
 
-    protected $availableRelations;
-    protected $relationsWithPivots;
+    protected $availableRelations = [];
+    protected $relationsWithPivots = [];
 
     protected $available_scopes;
 
@@ -206,13 +207,32 @@ class QueryMap
     public function handleOrders($orders)
     {
         if($orders) {
-            $orders = self::explodeFilters($orders);
-            $orders = self::subtractFrom($orders, $this->getAvailableRelations());
+            $conditions = $this->createConditionsMap($orders);
 
-            foreach ($orders as $order) {
-                list($field, $direction) = explode(':', $order);
+            foreach ($conditions as $subject => $subject_conditions)
+            {
+                if($subject === '.') {
+                    foreach ($subject_conditions as $subject_condition) {
 
-                $this->query->orderBy($field, $direction);
+                        list($field, $direction) = explode(':', $subject_condition);
+
+                        $this->query->orderBy($field, $direction);
+                    }
+                } else {
+                    $table = RM::getTable($this->modelClass);
+                    $this->query->select(DB::raw($table.'.*'));
+                    $relative_table = RM::getTable(RM::getNamespaceClass(RM::getForeignModel($this->modelClass, $subject)));
+
+                    foreach ($subject_conditions as $subject_condition) {
+
+                        list($field, $direction) = explode(':', $subject_condition);
+
+                        $this->query
+                            ->leftJoin($relative_table, $relative_table.'.id', '=', $table.'.'.$subject.'_id')
+                            ->orderBy($field, $direction);
+
+                    }
+                }
             }
         }
 

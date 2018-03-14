@@ -125,7 +125,10 @@ class ApiController extends Controller
             }
         }
 
+        $dispatcher = $object->getEventDispatcher();
+        $object->unsetEventDispatcher();
         $object->save();
+        $object->setEventDispatcher($dispatcher);
 
         // belongsToMany
         if(count($relations)) {
@@ -143,6 +146,8 @@ class ApiController extends Controller
 
             }
         }
+
+        $object->save();
 
         return with(new $this->modelClass())
             ->with(array_keys($relations))
@@ -245,7 +250,10 @@ class ApiController extends Controller
             }
         }
 
+        $dispatcher = $object->getEventDispatcher();
+        $object->unsetEventDispatcher();
         $object->save();
+        $object->setEventDispatcher($dispatcher);
 
         // belongsToMany
         if(count($relations)) {
@@ -268,6 +276,8 @@ class ApiController extends Controller
 
             }
         }
+
+        $object->save();
 
         return with(new $this->modelClass())
             ->with(array_keys($relations))

@@ -125,6 +125,7 @@ class ApiController extends Controller
             }
         }
 
+        event('eloquent.creating: '.ltrim($this->modelClass, '\\'), $object);
         $dispatcher = $object->getEventDispatcher();
         $object->unsetEventDispatcher();
         $object->save();
@@ -147,7 +148,7 @@ class ApiController extends Controller
             }
         }
 
-        $object->save();
+        event('eloquent.created: '.ltrim($this->modelClass, '\\'), $object);
 
         return with(new $this->modelClass())
             ->with(array_keys($relations))
@@ -250,6 +251,7 @@ class ApiController extends Controller
             }
         }
 
+        event('eloquent.updating: '.ltrim($this->modelClass, '\\'), $object);
         $dispatcher = $object->getEventDispatcher();
         $object->unsetEventDispatcher();
         $object->save();
@@ -277,7 +279,7 @@ class ApiController extends Controller
             }
         }
 
-        $object->save();
+        event('eloquent.updated: '.ltrim($this->modelClass, '\\'), $object);
 
         return with(new $this->modelClass())
             ->with(array_keys($relations))
